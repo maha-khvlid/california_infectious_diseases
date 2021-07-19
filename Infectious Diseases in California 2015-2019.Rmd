@@ -1,0 +1,173 @@
+---
+title: "Infectious Diseases in California 2015-2019"
+author: "Maha Khalid"
+date: "3/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+### Background
+
+
+California, the third largest state in the United States begins at the border of Mexico and stretches along the Pacific Ocean for over 900 miles of geographically diverse areas such as mountains, forests, beaches, farmland, desert, and more.  
+
+As of 2019, the state of California had a population of approximately 39.51 million people.
+Infectious diseases can be more or less prominent in a region based on many factors such as socioeconomic status, access to resources, sanitation, and environmental factors. 
+
+Infectious diseases occur when microscopic organisms penetrate the body's natural barriers and result in development of disease and usually, symptoms, that can range from mile to fatal. Infectious agents can enter the body through skin contact, inhalation of airborne microbes, ingestion of contaminated food or water, bites from vectors such as ticks or mosquitoes that carry and transmit organisms, sexual contact and transmission from mothers to their unborn children via the birth canal and placenta.
+
+
+### Data
+
+This dataset was retrieved from the California Department of Public Health and contains case counts and rates for infectious diseases that met the surveillance case definition for that disease and was reported for California residents, by disease, county, year, and sex. The data represents cases with an estimated illness onset date from 2015 through 2019 indicated from California Confidential Morbidity Reports and/or Laboratory Reports. This analysis also utilized US Census data and ACS data to provide an in-depth view of sociodemiographic factors by county in the state of California. 
+
+### Analysis 
+
+```{r, subsetting data}
+cali_data %>%
+  filter(Year >= 2015, Year <= 2019)
+```
+
+```{r, subsetting data}
+cali_data %>%
+  filter(Disease %in% c("Malaria", "Chikungunya", "Dengue Fever", "Zika Virus", "Yellow Fever"))
+```
+#Creating new dataset using subset criteria (2015-2019, vector-borne diseases)
+cali_long = subset(cali_data, Year >= 2015, Year <= 2019)
+cali_long = subset(cali_long, Disease %in% c("Malaria", "Chikungunya", "Dengue Fever", "Zika Virus", "Yellow Fever" )) %>% clean_names()
+
+
+#Installing tinycensus and loading census data 
+census_api_key("95e2f30f379620fae6c1459eee0ae1b1b598f5b3”, install = TRUE) #API Key
+
+library(tidycensus) #For pulling census data
+library(tidyverse)
+library(janitor)
+
+acs_vars <-load_variables(2019, "acs5")
+View(acs_vars) #Available census data variables from 2015 to 2019
+
+#Population
+population_county <- get_acs(geography = "county", variables = "B01003_001", state = "CA", year = 2019) %>% clean_names()
+
+#Poverty
+cali_poverty <- get_acs(geography = "county", variables = "B05010_001", state = "CA", year = 2019)  %>% clean_names()
+medincome <- get_acs(geography = "county", variables = "B06011_001", state = "CA", year = 2019)  %>% clean_names()
+
+#Race/Ethnicity 
+race_hispanic <- get_acs(geography = "county", variables = "B03002_001", state = "CA", year = 2019)
+race_white <- get_acs(geography = "county", variables = "B03002_003", state = "CA", year = 2019) 
+race_black <- get_acs(geography = "county", variables = "B03002_004", state = "CA", year = 2019) 
+race_aa_alaska <- get_acs(geography = "county", variables = "B03002_005", state = "CA", year = 2019) 
+race_asian <- get_acs(geography = "county", variables = "B03002_006", state = "CA", year = 2019) 
+race_hawaiian_pacific <- get_acs(geography = "county", variables = "B03002_007", state = "CA", year = 2019) 
+race_other <- get_acs(geography = "county", variables = "B03002_008", state = "CA", year = 2019) 
+clean_names()
+
+#Education 
+below_hs <- get_acs(geography = "county", variables = "B06009_002", state = "CA", year = 2019) %>% clean_names()
+high_school <- get_acs(geography = "county", variables = "B06009_003", state = "CA", year = 2019) %>% clean_names()
+associates <- get_acs(geography = "county", variables = "B06009_004", state = "CA", year = 2019) %>% clean_names()
+bachelors <- get_acs(geography = "county", variables = "B06009_005", state = "CA", year = 2019) %>% clean_names()
+masters_graduate <- get_acs(geography = "county", variables = "B06009_006", state = "CA", year = 2019) %>% clean_names()
+
+#Employment/Occupation
+agriculture <- get_acs(geography = "county", variables = "C24070_002", state = "CA", year = 2019) 
+construction <- get_acs(geography = "county", variables = "C24070_003", state = "CA", year = 2019) 
+manufacturing <- get_acs(geography = "county", variables = "C24070_004", state = "CA", year = 2019) 
+wholesale trade <- get_acs(geography = "county", variables = "C24070_005", state = "CA", year = 2019) 
+retail trade <- get_acs(geography = "county", variables = "C24070_006", state = "CA", year = 2019) 
+transport_warehousing <- get_acs(geography = "county", variables = "C24070_007", state = "CA", year = 2019) 
+information <- get_acs(geography = "county", variables = "C24070_008", state = "CA", year = 2019) 
+finance <- get_acs(geography = "county", variables = "C24070_009", state = "CA", year = 2019) 
+professional_scientific <- get_acs(geography = "county", variables = "C24070_010", state = "CA", year = 2019) 
+education_health <- get_acs(geography = "county", variables = "C24070_011", state = "CA", year = 2019) 
+arts_entertainment <- get_acs(geography = "county", variables = "C24070_012", state = "CA", year = 2019) 
+other_services <- get_acs(geography = "county", variables = "C24070_013", state = "CA", year = 2019) 
+public_admin <- get_acs(geography = "county", variables = "C24070_014", state = "CA", year = 2019) 
+
+
+#Code to combine vectors into one dataset
+cali_acs <- get_acs(geography = "county", state = "CA", year = 2019, moe_level = 95,
+variables = c(poverty = "B05010_001",
+              medincome = "B06011_001",
+              allrace = "B02001_001",
+              hispanic = "B03002_001",
+              white = "B03002_003",
+              black = "B03002_004",
+              aa_alaska = "B03002_005",
+              asian = "B03002_006",
+              hawaiian_pacific = "B03002_007",
+              other_race = "B03002_008",
+              below_hs = "B06009_002",
+              high_school = "B06009_003",
+              associates = "B06009_004",
+              bachelors = "B06009_005",
+              masters_graduate = "B06009_006",
+              acs_population = "B01003_001"),
+              agriculture <- get_acs(geography = "county", variables = "C24070_002", state = "CA", year = 2019), 
+              construction <- get_acs(geography = "county", variables = "C24070_003", state = "CA", year = 2019), 
+              manufacturing <- get_acs(geography = "county", variables = "C24070_004", state = "CA", year = 2019), 
+              wholesale trade <- get_acs(geography = "county", variables = "C24070_005", state = "CA", year = 2019), 
+              retail trade <- get_acs(geography = "county", variables = "C24070_006", state = "CA", year = 2019), 
+              transport_warehousing <- get_acs(geography = "county", variables = "C24070_007", state = "CA", year =2019),               information <- get_acs(geography = "county", variables = "C24070_008", state = "CA", year = 2019),
+              finance <- get_acs(geography = "county", variables = "C24070_009", state = "CA", year = 2019),
+              profes_scientific <- get_acs(geography = "county", variables = "C24070_010", state = "CA", year= 2019), 
+              education_health <- get_acs(geography = "county", variables = "C24070_011", state = "CA", year = 2019), 
+              arts_entertainment <- get_acs(geography = "county", variables = "C24070_012", state = "CA", year = 2019), 
+              other_services <- get_acs(geography = "county", variables = "C24070_013", state = "CA", year = 2019),
+              public_admin <- get_acs(geography = "county", variables = "C24070_014", state = "CA", year = 2019), 
+                                                                                
+        output = "wide") %>% 
+        clean_names()
+
+cali_acs <- mutate(cali_acs, name = stringr::str_remove_all(name," County, California"))
+
+cali_update <- filter(cali_long, sex == "Total") %>%
+select(-sex)
+
+#Left joining California Infectious Disease Data & ACS (Census) Data
+
+cali_merged<-merge(x=disease,y=cases,by="county",all.x=TRUE)
+
+
+#Insert plots/visualizations here:
+
+```{r cali_visuals, echo=FALSE}
+plot(cali_data, county)
+```
+library(sf)
+library(tmap)
+library(ggplot2)
+library(tmaptools)
+library(leaflet)
+library(dplyr)
+
+options(scipen = 999)
+
+ggplot(cali_wide) +
+  geom_sf(aes(fill=medincome))
+
+ggplot(cali_wide) +
+  geom_sf(aes(fill=medincome)) +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43)
+
+ggplot(cali_wide, aes(fill = pct, color = pct)) +
+  geom_sf() +
+  facet_wrap(~variable)
+
+
+### Conclusion
+
+
+
+
+
+### References
+
+1. https://www.census.gov/quickfacts/fact/table/CA/PST045219
